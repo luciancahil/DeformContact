@@ -29,20 +29,18 @@ def train(config):
             soft_rest_graphs,
             soft_def_graphs,
             meta_data,
-            rigid_graphs,
+            _,
         ) in enumerate(dataloader_train):
             soft_rest_graphs_batched = Batch.from_data_list(soft_rest_graphs)
-            rigid_graphs_batched = Batch.from_data_list(rigid_graphs)
             soft_def_graphs_batched = Batch.from_data_list(soft_def_graphs)
 
-            soft_rest_graphs_batched, rigid_graphs_batched, soft_def_graphs_batched = (
+            soft_rest_graphs_batched, soft_def_graphs_batched = (
                 soft_rest_graphs_batched.to(device),
-                rigid_graphs_batched.to(device),
                 soft_def_graphs_batched.to(device),
             )
 
 
-            predictions = model(soft_rest_graphs_batched, rigid_graphs_batched)
+            predictions = model(soft_rest_graphs_batched)
             predictions.pos = predictions.pos - soft_rest_graphs_batched.pos
             soft_def_graphs_batched.pos = (
                 soft_def_graphs_batched.pos - soft_rest_graphs_batched.pos
@@ -81,23 +79,20 @@ def train(config):
                 soft_rest_graphs,
                 soft_def_graphs,
                 meta_data,
-                rigid_graphs,
+                _,
             ) in enumerate(dataloader_val):
                 soft_rest_graphs_batched = Batch.from_data_list(soft_rest_graphs)
-                rigid_graphs_batched = Batch.from_data_list(rigid_graphs)
                 soft_def_graphs_batched = Batch.from_data_list(soft_def_graphs)
 
                 (
                     soft_rest_graphs_batched,
-                    rigid_graphs_batched,
                     soft_def_graphs_batched,
                 ) = (
                     soft_rest_graphs_batched.to(device),
-                    rigid_graphs_batched.to(device),
                     soft_def_graphs_batched.to(device),
                 )
 
-                predictions = model(soft_rest_graphs_batched, rigid_graphs_batched)
+                predictions = model(soft_rest_graphs_batched)
                 loss_mse = criterion_mse(predictions.pos, soft_def_graphs_batched.pos)
                 loss_consistency = criterion_grad(predictions, soft_def_graphs_batched)
                 # loss_deformable = criterion_def(predictions, soft_def_graphs_batched, meta_data['deform_intensity'].to(device))

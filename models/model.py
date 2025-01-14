@@ -10,15 +10,15 @@ class MultiHeadAttention(nn.Module):
         self.num_heads = num_heads
         self.attention_heads = nn.ModuleList([nn.Linear(feature_dim, feature_dim) for _ in range(num_heads)])
         
-    def forward(self, x_resting, x_rigid):
+    def forward(self, x_resting):
         outputs = []
         for head in self.attention_heads:
             # using the same matrix for key and query.
-            scores = torch.mm(head(x_resting), head(x_rigid).transpose(0, 1))
+            scores = torch.mm(head(x_resting), head(x_resting).transpose(0, 1))
             attn_weights = F.softmax(scores, dim=-1)
 
             # the values matrix is just the identity matrix. 
-            output = torch.mm(attn_weights, x_rigid)
+            output = torch.mm(attn_weights, x_resting)
             outputs.append(output)
 
         return torch.cat(outputs, dim=-1)
@@ -32,7 +32,6 @@ class GraphNet(nn.Module):
         self.backbone = backbone
 
         self.conv_layers_resting = nn.ModuleList()
-        self.conv_layers_rigid = nn.ModuleList()
         self.use_mha = use_mha
 
         self.dropout_rate = dropout_rate
@@ -42,15 +41,11 @@ class GraphNet(nn.Module):
         conv_layer = GATConv if self.backbone == "GATConv" else GCNConv if self.backbone == "GCNConv" else TAGConv
 
         input_dims_resting = input_dims.copy()
-        input_dims_rigid = input_dims.copy()
 
         for _ in range(self.encoder_layers):
             self.conv_layers_resting.append(conv_layer(input_dims_resting[0], hidden_dim))
             input_dims_resting[0] = hidden_dim 
 
-        for _ in range(self.encoder_layers):
-            self.conv_layers_rigid.append(conv_layer(input_dims_rigid[1], hidden_dim))
-            input_dims_rigid[1] = hidden_dim  
 
         # Decoder
         decoder = []
@@ -67,22 +62,16 @@ class GraphNet(nn.Module):
         self.decoder = nn.Sequential(*decoder)
         self.multihead_attention = MultiHeadAttention(hidden_dim, num_heads=num_mha_heads)
 
-    def forward(self, graph_resting, graph_rigid):
+    def forward(self, graph_resting):
         # For resting graph
         x_resting = graph_resting.x
         for conv in self.conv_layers_resting:
             x_resting = F.relu(conv(x_resting, graph_resting.edge_index))
             x_resting = F.dropout(x_resting, p=self.dropout_rate, training=self.training)
 
-        # For rigid graph
-        x_rigid = graph_rigid.x
-        for conv in self.conv_layers_rigid:
-            x_rigid = F.relu(conv(x_rigid, graph_rigid.edge_index))
-            x_rigid = F.dropout(x_rigid, p=self.dropout_rate, training=self.training)
-
         
 
-        pooled_features = self.multihead_attention(x_resting, x_rigid)
+        pooled_features = self.multihead_attention(x_resting)
 
         x_combined = torch.cat([x_resting, pooled_features], dim=-1)
 
