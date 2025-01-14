@@ -9,6 +9,7 @@ class GradientConsistencyLoss(nn.Module):
         node_pos_rest = soft_rest_graphs_batched.pos
         node_pos_pred = pred_graphs_batched.pos
 
+        # for each edge, find the locations of both nodes, then find the difference.
         edge_diffs_rest = node_pos_rest[soft_rest_graphs_batched.edge_index[1]] - node_pos_rest[soft_rest_graphs_batched.edge_index[0]]
         edge_diffs_pred = node_pos_pred[pred_graphs_batched.edge_index[1]] - node_pos_pred[pred_graphs_batched.edge_index[0]]
 

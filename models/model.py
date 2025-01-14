@@ -13,8 +13,11 @@ class MultiHeadAttention(nn.Module):
     def forward(self, x_resting, x_rigid):
         outputs = []
         for head in self.attention_heads:
+            # using the same matrix for key and query.
             scores = torch.mm(head(x_resting), head(x_rigid).transpose(0, 1))
             attn_weights = F.softmax(scores, dim=-1)
+
+            # the values matrix is just the identity matrix. 
             output = torch.mm(attn_weights, x_rigid)
             outputs.append(output)
 

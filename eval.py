@@ -5,7 +5,7 @@ from utils.visualization import *
 from configs.config import Config
 from models.model_loader import load_model
 from models.losses import GradientConsistencyLoss
-from loaders.dataset_loader import load_dataset
+from dataset_loader import load_dataset
 import wandb
 import os
 import torch.nn as nn

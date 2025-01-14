@@ -2,14 +2,12 @@ import torch
 import os
 import torch.optim as optim
 import torch.nn as nn
-from loaders.dataset_loader import load_dataset
+from dataset_loader import load_dataset
 from torch_geometric.data import Batch
 from configs.config import Config
 from models.model_loader import load_model
 from models.losses import GradientConsistencyLoss
 import random
-
-import wandb
 
 
 def train(config):
@@ -43,11 +41,14 @@ def train(config):
                 soft_def_graphs_batched.to(device),
             )
 
+
             predictions = model(soft_rest_graphs_batched, rigid_graphs_batched)
             predictions.pos = predictions.pos - soft_rest_graphs_batched.pos
             soft_def_graphs_batched.pos = (
                 soft_def_graphs_batched.pos - soft_rest_graphs_batched.pos
             )
+
+
 
             loss_mse = criterion_mse(predictions.pos, soft_def_graphs_batched.pos)
             loss_consistency = criterion_grad(predictions, soft_def_graphs_batched)
@@ -57,8 +58,7 @@ def train(config):
             loss_triplet = (loss_pos + 0.001) / (loss_neg + 0.001)
             tr_loss = loss_mse + lambda_gradient * loss_consistency
 
-            wandb.log(
-                {
+            print(                {
                     "tr_mse_loss": loss_mse.item(),
                     "tr_consistency_loss": loss_consistency.item(),
                     "loss_triplet": loss_triplet.item(),
@@ -115,31 +115,10 @@ def train(config):
         )
 
         # Logging validation loss to wandb
-        wandb.log({"validation_loss": avg_val_loss})
-
-        # Save the model after each epoch
-        if min_val > avg_val_loss:
-            model_save_path = os.path.join(wandb.run.dir, "model_weights.pth")
-            config_save_path = os.path.join(wandb.run.dir, "config.json")
-
-            torch.save(model.state_dict(), model_save_path)
-            min_val = avg_val_loss
-
-            # Save the configuration file to the same directory
-            config.save(config_save_path)
-
-            # Save both files to the WandB run directory
-            wandb.save(model_save_path)
-            wandb.save(config_save_path)
-
-    wandb.finish()
+        print({"validation_loss": avg_val_loss})
 
 
 if __name__ == "__main__":
     config_path = "configs/everyday.json"
     config = Config(config_path)
-    wandb.init(
-        project="DeformContact",
-        name="{}-{}".format(config.dataset.obj_list[0], random.randint(1000, 9999)),
-    )
     train(config)

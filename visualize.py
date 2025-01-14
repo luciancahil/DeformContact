@@ -1,6 +1,6 @@
 from utils.visualization import *
 
-from data.dataset_loader import load_dataset
+from dataset_loader import load_dataset
 from configs.config import Config
 from torch_geometric.data import Batch
 

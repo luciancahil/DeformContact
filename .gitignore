@@ -4,7 +4,7 @@ logs/*
 wandb/*
 outputs/*
 build/
-
+*.zip
 
 # vs code
 .vscode/*
