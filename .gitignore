@@ -6,6 +6,17 @@ outputs/*
 build/
 *.zip
 
+
+
+# Ignore everything in these folder
+dataset/processed/*
+dataset/raw/*
+
+# But not these files...
+!dataset/processed/dummy.txt
+!dataset/raw/dumyy.txt
+
+
 # vs code
 .vscode/*
 .vscode/settings.json
