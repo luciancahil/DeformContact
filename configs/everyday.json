@@ -34,7 +34,7 @@
         "lambda_deformable": 0.1
     },
     "network": {
-        "input_dims": [21, 25],
+        "input_dims": [10, 25],
         "use_mha":true,
         "num_mha_heads": 2,
         "hidden_dim": 256,

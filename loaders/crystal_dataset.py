@@ -5,6 +5,7 @@ import torch
 from torch_geometric.data import Data
 
 
+
 class CrystalGraphDataset(Dataset):
     def __init__(self, datasetName, edge_generation="all"):
         super().__init__()
@@ -16,9 +17,20 @@ class CrystalGraphDataset(Dataset):
 
 
         if(os.path.exists(self.dataset_dir)):
+            self.len = len(os.listdir(self.dataset_dir))
             print("Processings skipped because diectory {} exists. If you wish to process raw data, please delete that folder.".format(datasetName))
         else:
             self.process(datasetName, edge_generation)
+    
+    def __getitem__(self, idx):
+        filename = os.path.join(self.dataset_dir, "Element_{}.pt".format(idx))
+        item = torch.load(filename)
+
+        # items are both Data objects representing the input and target graphs respectively.
+        return None, item[0], item[1], None, None
+
+    def __len__(self):
+        return self.len
             
            
     def process(self,datasetName, edge_generation):
@@ -65,7 +77,8 @@ class CrystalGraphDataset(Dataset):
             features_list = torch.tensor(features_list)
             end_pos_list = torch.tensor(end_pos_list)
 
-            input_graph = Data(x=features_list, edge_index=edges, pos=start_pos_list)
+
+            input_graph = Data(x=features_list, edge_index=edges, pos=start_pos_list,elements=elements)
             target_graph = Data(x=features_list, edge_index=edges, pos=end_pos_list)
 
             data = (input_graph, target_graph)
@@ -74,6 +87,8 @@ class CrystalGraphDataset(Dataset):
         
             num_nodes = raw_file.readline()
             idx += 1
+    
+        self.len = idx
 
 
 if __name__ == "__main__":
