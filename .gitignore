@@ -14,7 +14,7 @@ dataset/raw/*
 
 # But not these files...
 !dataset/processed/dummy.txt
-!dataset/raw/dumyy.txt
+!dataset/raw/dummy.txt
 
 
 # vs code
