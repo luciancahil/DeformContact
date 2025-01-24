@@ -14,6 +14,7 @@ from configs.config import Config
 def train(config, dataloader_train, dataloader_val):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_model(config).to(device)
+    
     optimizer = optim.Adam(model.parameters(), lr=config.training.learning_rate)
     criterion_mse = nn.L1Loss()
     criterion_grad = GradientConsistencyLoss()
@@ -39,6 +40,10 @@ def train(config, dataloader_train, dataloader_val):
             )
 
 
+
+
+            if(soft_rest_graphs_batched.x.size() == torch.Size([0])):
+                continue
             predictions = model(soft_rest_graphs_batched)
             predictions.pos = predictions.pos - soft_rest_graphs_batched.pos
             soft_def_graphs_batched.pos = (
@@ -80,9 +85,8 @@ def train(config, dataloader_train, dataloader_val):
                 meta_data,
                 _,
             ) in enumerate(dataloader_val):
-                soft_rest_graphs_batched = Batch.from_data_list(soft_rest_graphs)
-                soft_def_graphs_batched = Batch.from_data_list(soft_def_graphs)
-
+                soft_rest_graphs_batched = soft_rest_graphs
+                soft_def_graphs_batched = soft_def_graphs
                 (
                     soft_rest_graphs_batched,
                     soft_def_graphs_batched,
@@ -90,7 +94,8 @@ def train(config, dataloader_train, dataloader_val):
                     soft_rest_graphs_batched.to(device),
                     soft_def_graphs_batched.to(device),
                 )
-
+                if(soft_rest_graphs_batched.x.size() == torch.Size([0])):
+                    continue
                 predictions = model(soft_rest_graphs_batched)
                 loss_mse = criterion_mse(predictions.pos, soft_def_graphs_batched.pos)
                 loss_consistency = criterion_grad(predictions, soft_def_graphs_batched)
@@ -110,11 +115,15 @@ def train(config, dataloader_train, dataloader_val):
 
         # Logging validation loss to wandb
         print({"validation_loss": avg_val_loss})
+    
+    torch.save(model, "model.pt")
 
 
 if __name__ == "__main__":
 
     dataset = CrystalGraphDataset("Random")
+
+
     batch_size = 2
 
     split = random_split(dataset, [0.8, 0.2])

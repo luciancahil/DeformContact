@@ -27,7 +27,7 @@
         "shuffle": true
     },
     "training": {
-        "n_epochs": 1000,
+        "n_epochs": 100,
         "learning_rate": 0.0004,
         "model_save_path": "model.pth",
         "lambda_gradient": 1.0,
@@ -42,8 +42,9 @@
         "encoder_layers":2,
         "decoder_layers":3,
         "dropout_rate": 0.00,
+        "edge_dim": 7,
         "knn_k": 7,
-        "backbone": "TAGConv",
+        "backbone": "GCNConv",
         "mode": "res"
     }
 }

@@ -91,3 +91,4 @@ class NetworkConfig:
         self.use_mha = None
         self.num_mha_heads=None
         self.mode = None
+        self.edge_dim = None
