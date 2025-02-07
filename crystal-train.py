@@ -121,7 +121,7 @@ def train(config, dataloader_train, dataloader_val):
 
 if __name__ == "__main__":
 
-    dataset = CrystalGraphDataset("Random")
+    dataset = CrystalGraphDataset("Relaxation")
 
 
     batch_size = 2

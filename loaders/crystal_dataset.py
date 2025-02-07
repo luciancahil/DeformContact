@@ -41,7 +41,7 @@ class CrystalGraphDataset(Dataset):
 
         num_nodes = raw_file.readline()
         idx = 0
-        while(not(num_nodes == "")):
+        while(not(num_nodes == "" or num_nodes == "\n")):
             num_nodes = int(num_nodes)
             start_pos_list = []
             end_pos_list = []
@@ -66,6 +66,8 @@ class CrystalGraphDataset(Dataset):
                 for edge in cur_edges:
 
                     edge_parts = edge.split(",")
+                    if(edge_parts[0] == ""):
+                        continue
                     edge_target = int(edge_parts[0])
                     edge_data = [float(num) for num in edge_parts[1:]]
                     edges.append([i, edge_target])
