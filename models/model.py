@@ -24,7 +24,7 @@ class MultiHeadAttention(nn.Module):
         return torch.cat(outputs, dim=-1)
     
 class GraphNet(nn.Module):
-    def __init__(self, input_dims, hidden_dim, output_dim, encoder_layers, decoder_layers, dropout_rate, knn_k, backbone,use_mha, num_mha_heads,mode,edge_dim):
+    def __init__(self, input_dims, hidden_dim, output_dim, encoder_layers, decoder_layers, dropout_rate, knn_k, backbone,use_mha, num_mha_heads,mode,edge_dim, num_types):
         super(GraphNet, self).__init__()
 
         self.encoder_layers = encoder_layers
@@ -37,7 +37,7 @@ class GraphNet(nn.Module):
         self.dropout_rate = dropout_rate
         self.knn_k = knn_k
         self.mode = mode
-
+        self.embedding = nn.Embedding(num_types, input_dims[0])
 
         input_dims_resting = input_dims.copy()
 
@@ -63,7 +63,7 @@ class GraphNet(nn.Module):
 
     def forward(self, graph_resting):
         # For resting graph
-        x_resting = graph_resting.x
+        x_resting = self.embedding(graph_resting.x.squeeze())
         edge_attr_resting = graph_resting.edge_attr
         for conv in self.conv_layers_resting:
             x_resting = F.relu(conv(x_resting, graph_resting.edge_index, edge_attr=edge_attr_resting))

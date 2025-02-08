@@ -135,7 +135,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_dataset, collate_fn=crystal_collate)
 
 
-    
     config_path = "configs/everyday.json"
     config = Config(config_path)
+    config.network.num_token_types = len(dataset.elm_to_num.keys())
     train(config, train_loader, test_loader)

@@ -12,7 +12,8 @@ def load_model(config):
                     num_mha_heads= config.network.num_mha_heads,
                     backbone=config.network.backbone,
                     mode=config.network.mode,
-                    edge_dim=config.network.edge_dim)
+                    edge_dim=config.network.edge_dim,
+                    num_types=config.network.num_token_types)
 
     return model
 

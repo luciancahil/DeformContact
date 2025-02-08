@@ -42,7 +42,7 @@
         "encoder_layers":2,
         "decoder_layers":3,
         "dropout_rate": 0.00,
-        "edge_dim": 7,
+        "edge_dim": 3,
         "knn_k": 7,
         "backbone": "GCNConv",
         "mode": "res"
