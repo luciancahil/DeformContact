@@ -2,7 +2,7 @@ import torch.nn as nn
 from torch_geometric.nn import GATConv, GCNConv, TAGConv, knn
 import torch
 import torch.nn.functional as F
-
+import math
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, feature_dim, num_heads=8):
@@ -24,11 +24,13 @@ class MultiHeadAttention(nn.Module):
         return torch.cat(outputs, dim=-1)
     
 class GraphNet(nn.Module):
-    def __init__(self, input_dims, hidden_dim, output_dim, encoder_layers, decoder_layers, dropout_rate, knn_k, backbone,use_mha, num_mha_heads,mode,edge_dim, num_types):
+    def __init__(self, input_dims, hidden_dim, output_dim, encoder_layers, decoder_layers, dropout_rate, knn_k, backbone,use_mha, num_mha_heads,mode,edge_dim, num_types = 0):
         super(GraphNet, self).__init__()
 
         self.encoder_layers = encoder_layers
         self.decoder_layers = decoder_layers
+
+        self.linear_encode = nn.Embedding(118, 16)
         self.backbone = backbone
 
         self.conv_layers_resting = nn.ModuleList()
@@ -37,7 +39,6 @@ class GraphNet(nn.Module):
         self.dropout_rate = dropout_rate
         self.knn_k = knn_k
         self.mode = mode
-        self.embedding = nn.Embedding(num_types, input_dims[0])
 
         input_dims_resting = input_dims.copy()
 
@@ -63,8 +64,27 @@ class GraphNet(nn.Module):
 
     def forward(self, graph_resting):
         # For resting graph
-        x_resting = self.embedding(graph_resting.x.squeeze())
+        x_resting = graph_resting.elements
+        
+        x_resting = self.linear_encode(x_resting)
+
+        start = 0
+
+        cutoff_indices = ((torch.diff(graph_resting.batch) != 0).nonzero(as_tuple=True)[0] + 1).tolist()
+        cutoff_indices.append(len(graph_resting.batch))
+
+        for cutoff in (cutoff_indices):
+            end = cutoff
+
+            # data for the current graph
+            x_resting[start:end] += torch.sin(encode_position(x_resting[start:end], torch.clone(graph_resting.pos[start:end])))
+            start = end
+
+
+
+
         edge_attr_resting = graph_resting.edge_attr
+        
         for conv in self.conv_layers_resting:
             x_resting = F.relu(conv(x_resting, graph_resting.edge_index, edge_attr=edge_attr_resting))
             x_resting = F.dropout(x_resting, p=self.dropout_rate, training=self.training)
@@ -87,3 +107,39 @@ class GraphNet(nn.Module):
             deformed_graph.pos = x_out
 
         return deformed_graph
+
+
+
+def encode_position(x, pos):
+    # sin(x/4000^(i/dim)) for first 
+    # sin(y/4000^(i/dim) + 2pi/3) for middle 3rd
+    # sin(z/4000^(i/dim) + 4pi/3) for last 3rd
+
+    # the third largest is either the highest or second highest metal atom
+    # this treats 
+    pos[:,2] -= pos[:,2].sort().values[-3]
+    dim = x.shape[-1]
+    third = int(dim/3)
+    positional_matrix = torch.zeros([3, dim])
+
+    # addd 1's
+    positional_matrix[0][0:third] = 1
+    positional_matrix[1][third: 2*third] = 1
+    positional_matrix[2][2*third:] = 1
+
+    positional_matrix = pos @ positional_matrix
+
+    # we need 1/ [4000 ^ (3i/dim)] = 1/[e^(ln(4000))]^(3i/dim) = e^[-3i*ln(4000)/dim]
+    constant = -1* math.log(4000) / dim
+    scale = torch.tensor([[i * constant for i in range(positional_matrix.shape[1])] for j in range(positional_matrix.shape[0])])
+
+    scale = torch.exp(scale)
+
+    positional_matrix = torch.div(positional_matrix, scale)
+
+    positional_matrix[:,third:2*third] += 2*math.pi/3
+
+    positional_matrix[:,2*third:] += 4*math.pi/3    
+
+
+    return positional_matrix

@@ -8,7 +8,13 @@ from models.losses import GradientConsistencyLoss
 import torch.nn as nn
 from torch_geometric.data import Batch
 from configs.config import Config
+import numpy as np
 
+import argparse
+
+"""
+ python crystal-train.py -n Bulk
+"""
 
 
 def train(config, dataloader_train, dataloader_val):
@@ -17,7 +23,6 @@ def train(config, dataloader_train, dataloader_val):
     
     optimizer = optim.Adam(model.parameters(), lr=config.training.learning_rate)
     criterion_mse = nn.L1Loss()
-    criterion_grad = GradientConsistencyLoss()
     lambda_gradient = config.training.lambda_gradient
     min_val = 10000.0
 
@@ -52,23 +57,13 @@ def train(config, dataloader_train, dataloader_val):
 
 
 
-            loss_mse = criterion_mse(predictions.pos, soft_def_graphs_batched.pos)
-            loss_consistency = criterion_grad(predictions, soft_def_graphs_batched)
+            loss_mae = criterion_mse(predictions.pos, soft_def_graphs_batched.pos)
 
             loss_pos = criterion_mse(predictions.pos, soft_def_graphs_batched.pos)
             loss_neg = criterion_mse(predictions.pos, soft_rest_graphs_batched.pos)
             loss_triplet = (loss_pos + 0.001) / (loss_neg + 0.001)
-            tr_loss = loss_mse + lambda_gradient * loss_consistency
-
-            print(                {
-                    "tr_mse_loss": loss_mse.item(),
-                    "tr_consistency_loss": loss_consistency.item(),
-                    "loss_triplet": loss_triplet.item(),
-                    "loss_pos": loss_pos.item(),
-                    "loss_neg": loss_neg.item(),
-                    "tr_loss": tr_loss.item(),
-                }
-            )
+            tr_loss = loss_mae
+            
             total_tr_loss += tr_loss.item()
             optimizer.zero_grad()
             tr_loss.backward()
@@ -97,12 +92,9 @@ def train(config, dataloader_train, dataloader_val):
                 if(soft_rest_graphs_batched.x.size() == torch.Size([0])):
                     continue
                 predictions = model(soft_rest_graphs_batched)
-                loss_mse = criterion_mse(predictions.pos, soft_def_graphs_batched.pos)
-                loss_consistency = criterion_grad(predictions, soft_def_graphs_batched)
+                loss_mae = criterion_mse(predictions.pos, soft_def_graphs_batched.pos)
                 # loss_deformable = criterion_def(predictions, soft_def_graphs_batched, meta_data['deform_intensity'].to(device))
-                loss_val = (
-                    loss_mse + lambda_gradient * loss_consistency
-                )  # + lambda_deformable * loss_deformable
+                loss_val = loss_mae
 
                 total_val_loss += loss_val.item()
 
@@ -120,9 +112,12 @@ def train(config, dataloader_train, dataloader_val):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Help msg", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-n", "--name",  help="name",  required=True)
+    args = parser.parse_args()
 
-    dataset = CrystalGraphDataset("Relaxation")
 
+    dataset = CrystalGraphDataset(args.name)
 
     batch_size = 2
 
@@ -137,5 +132,5 @@ if __name__ == "__main__":
 
     config_path = "configs/everyday.json"
     config = Config(config_path)
-    config.network.num_token_types = len(dataset.elm_to_num.keys())
+    print("Begin Training")
     train(config, train_loader, test_loader)

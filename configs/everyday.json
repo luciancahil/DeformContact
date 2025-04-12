@@ -45,6 +45,6 @@
         "edge_dim": 3,
         "knn_k": 7,
         "backbone": "GCNConv",
-        "mode": "res"
+        "mode": "rec"
     }
 }

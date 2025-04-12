@@ -25,7 +25,7 @@ def crystal_collate(batch):
     # Iterate over each sample in the batch
     for sample in batch:
         # Unpack the tuple
-        none_0, data1, data2, none_3, none_4 = sample
+        data1, data2 = sample
 
         # Append Data objects to their respective lists
         batched_data1.append(data1)
