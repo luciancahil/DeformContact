@@ -30,7 +30,8 @@ class GraphNet(nn.Module):
         self.encoder_layers = encoder_layers
         self.decoder_layers = decoder_layers
 
-        self.linear_encode = nn.Embedding(118, 16)
+        # -3 so we have room for the position
+        self.linear_encode = nn.Embedding(118, input_dims[0] - 3)
         self.backbone = backbone
 
         self.conv_layers_resting = nn.ModuleList()
@@ -77,7 +78,7 @@ class GraphNet(nn.Module):
             end = cutoff
 
             # data for the current graph
-            x_resting[start:end] += torch.sin(encode_position(x_resting[start:end], torch.clone(graph_resting.pos[start:end])))
+            x_resting[start:end] = torch.cat((x_resting[start:end], graph_resting.pos[start:end]), dim=1)
             start = end
 
 
