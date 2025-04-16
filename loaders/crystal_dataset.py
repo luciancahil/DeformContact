@@ -150,17 +150,19 @@ class CrystalGraphDataset(Dataset):
                 start_pos_list[:,2] -= scale
                 end_pos_list[:, 2] -= scale
 
+
+
+                
+                """  Remove for now
+                # remove overflow atoms, that go too far up and end up at the bottom
                 dist_pos = (end_pos_list-start_pos_list)[:,0:2]
                 basis_vector =  np.linalg.inv(torch.transpose(lattice[0:2,0:2], 0, 1))
-
-
                 normed_basis = torch.transpose((torch.tensor(basis_vector, dtype=torch.float) @ torch.transpose(dist_pos, 0, 1)*100), 0, 1)  # Transform the vector
-                
                 if (max(normed_basis.norm(dim=1).tolist()) > 0.7):
                     idx += 1
                     defining = raw_file.readline()
                     rejected += 1
-                    continue
+                    continue"""
                 
                 all_starting = torch.concat((all_starting, start_pos_list), dim=0)
                 all_ending = torch.concat((all_ending, end_pos_list), dim=0)
