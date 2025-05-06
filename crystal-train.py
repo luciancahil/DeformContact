@@ -11,6 +11,7 @@ from configs.config import Config
 import numpy as np
 
 import argparse
+from torch.utils.data import Subset
 
 """
  python crystal-train.py -n Bulk
@@ -114,17 +115,26 @@ def train(config, dataloader_train, dataloader_val):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Help msg", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-n", "--name",  help="name",  required=True)
+    parser.add_argument("-p", "--proportion", help="how many trainings do you want", default=-1)
     args = parser.parse_args()
 
 
     dataset = CrystalGraphDataset(args.name)
 
     batch_size = 2
+    proportion = int(args.proportion)
 
-    split = random_split(dataset, [0.8, 0.2])
 
-    train_dataset = split[0]
-    test_dataset = split[1]
+    if(proportion == -1):
+
+        split = random_split(dataset, [0.8, 0.2])
+        train_dataset = split[0]
+        test_dataset = split[1]
+    
+    else:
+        train_dataset = Subset(dataset, range(proportion))
+        test_dataset = Subset(dataset, range(proportion))
+
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=crystal_collate)
     test_loader = DataLoader(test_dataset, collate_fn=crystal_collate)

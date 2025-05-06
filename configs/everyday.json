@@ -7,7 +7,7 @@
         "neigbor_radius": 0.15,
         "neigbor_k":5,
         "sphere_radius":0.05,
-        "force_max":10000,
+        "force_max":1000,
         "graph_method":"knn"
     },
     "visualization": {
@@ -27,7 +27,7 @@
         "shuffle": true
     },
     "training": {
-        "n_epochs": 100,
+        "n_epochs": 10000,
         "learning_rate": 0.0004,
         "model_save_path": "model.pth",
         "lambda_gradient": 1.0,
