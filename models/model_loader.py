@@ -1,8 +1,8 @@
 from models.model import GraphNet
 
-def load_model(config):
+def load_model(config, multiplier):
     model = GraphNet(input_dims=config.network.input_dims,
-                    hidden_dim=config.network.hidden_dim,
+                    hidden_dim=config.network.hidden_dim * multiplier,
                     output_dim=config.network.output_dim,
                     encoder_layers=config.network.encoder_layers,
                     decoder_layers=config.network.decoder_layers,

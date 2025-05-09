@@ -15,13 +15,17 @@ import argparse
 from torch.utils.data import Subset
 
 """
-python crystal-train.py -n Bulk -p 10
+python crystal-train.py -n Bulk -p 10 -m 10
 """
 
 
-def train(config, dataloader_train, dataloader_val):
+def train(config, dataloader_train, dataloader_val, args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_model(config).to(device)
+    model = load_model(config, int(args.multiplier)).to(device)
+    total_params = sum(p.numel() for p in model.parameters())
+    print("Total Params: {}".format(total_params))
+
+    
     
     optimizer = optim.Adam(model.parameters(), lr=config.training.learning_rate)
     scheduler = CosineAnnealingLR(optimizer, T_max=config.training.n_epochs)
@@ -114,12 +118,16 @@ def train(config, dataloader_train, dataloader_val):
         print({"validation_loss": avg_val_loss})
     
     torch.save(model, "model.pt")
+    print("!Results - validation_loss: {}, Params: {}, samples: {}".format(avg_val_loss, total_params, args.proportion))
+
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Help msg", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-n", "--name",  help="name",  required=True)
     parser.add_argument("-p", "--proportion", help="how many samples do you want", default=-1)
+    parser.add_argument("-m", "--multiplier", help="How much you want to scale up the model", default=1)
+
     args = parser.parse_args()
 
 
@@ -147,4 +155,4 @@ if __name__ == "__main__":
     config_path = "configs/everyday.json"
     config = Config(config_path)
     print("Begin Training")
-    train(config, train_loader, test_loader)
+    train(config, train_loader, test_loader, args)
