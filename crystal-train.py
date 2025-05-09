@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=crystal_collate)
-    test_loader = DataLoader(test_dataset, collate_fn=crystal_collate)
+    test_loader = DataLoader(test_dataset, batch_size = batch_size, collate_fn=crystal_collate)
 
 
     config_path = "configs/everyday.json"
