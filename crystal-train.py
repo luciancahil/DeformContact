@@ -9,12 +9,13 @@ import torch.nn as nn
 from torch_geometric.data import Batch
 from configs.config import Config
 import numpy as np
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 import argparse
 from torch.utils.data import Subset
 
 """
- python crystal-train.py -n Bulk
+python crystal-train.py -n Bulk -p 10
 """
 
 
@@ -23,6 +24,7 @@ def train(config, dataloader_train, dataloader_val):
     model = load_model(config).to(device)
     
     optimizer = optim.Adam(model.parameters(), lr=config.training.learning_rate)
+    scheduler = CosineAnnealingLR(optimizer, T_max=config.training.n_epochs)
     criterion_mse = nn.L1Loss()
     lambda_gradient = config.training.lambda_gradient
     min_val = 10000.0
@@ -69,6 +71,8 @@ def train(config, dataloader_train, dataloader_val):
             optimizer.zero_grad()
             tr_loss.backward()
             optimizer.step()
+        
+        scheduler.step()
 
         # Validation loop
         model.eval()
@@ -115,13 +119,13 @@ def train(config, dataloader_train, dataloader_val):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Help msg", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-n", "--name",  help="name",  required=True)
-    parser.add_argument("-p", "--proportion", help="how many trainings do you want", default=-1)
+    parser.add_argument("-p", "--proportion", help="how many samples do you want", default=-1)
     args = parser.parse_args()
 
 
     dataset = CrystalGraphDataset(args.name)
 
-    batch_size = 2
+    batch_size = 32
     proportion = int(args.proportion)
 
 
