@@ -15,7 +15,7 @@ import argparse
 from torch.utils.data import Subset
 
 """
-python crystal-train.py -n Bulk -p 10 -m 10
+python crystal-train.py -n Bulk -p 100 -m 1
 """
 
 
@@ -142,11 +142,10 @@ if __name__ == "__main__":
         split = random_split(dataset, [0.8, 0.2])
         train_dataset = split[0]
         test_dataset = split[1]
-    
+        args.proportion = len(train_dataset)
     else:
         train_dataset = Subset(dataset, range(proportion))
         test_dataset = Subset(dataset, range(proportion))
-
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=crystal_collate)
     test_loader = DataLoader(test_dataset, batch_size = batch_size, collate_fn=crystal_collate)
