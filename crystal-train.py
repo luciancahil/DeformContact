@@ -15,7 +15,19 @@ import argparse
 from torch.utils.data import Subset
 
 """
+python crystal-train.py -n Relaxation_Large -p 100 -m 1
+
+Next steps: 
+
 python crystal-train.py -n Bulk -p 100 -m 1
+
+
+1. Change this to Relaxation_Large
+2. Change this to Relaxation_fully
+3. Add another command that lets me use the complicated one.
+
+python crystal-train.py -n Relaxation_Large
+python crystal-train.py -n Relaxation_Fully
 """
 
 
@@ -45,6 +57,7 @@ def train(config, dataloader_train, dataloader_val, args):
         ) in enumerate(dataloader_train):
             soft_rest_graphs_batched = soft_rest_graphs
             soft_def_graphs_batched = soft_def_graphs
+            breakpoint()
 
             soft_rest_graphs_batched, soft_def_graphs_batched = (
                 soft_rest_graphs_batched.to(device),
@@ -87,6 +100,7 @@ def train(config, dataloader_train, dataloader_val, args):
                 soft_rest_graphs,
                 soft_def_graphs,
                 meta_data,
+                _,
                 _,
             ) in enumerate(dataloader_val):
                 soft_rest_graphs_batched = soft_rest_graphs
@@ -147,6 +161,7 @@ if __name__ == "__main__":
         train_dataset = Subset(dataset, range(proportion))
         test_dataset = Subset(dataset, range(proportion))
 
+    breakpoint()
     train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=crystal_collate)
     test_loader = DataLoader(test_dataset, batch_size = batch_size, collate_fn=crystal_collate)
 
