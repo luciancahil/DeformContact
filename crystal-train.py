@@ -28,12 +28,13 @@ python crystal-train.py -n Bulk -p 100 -m 1
 
 python crystal-train.py -n Relaxation_Large
 python crystal-train.py -n Relaxation_Fully
+python crystal-train.py -n Relaxation_Sepearted -g 2
 """
 
 
 def train(config, dataloader_train, dataloader_val, args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_model(config, int(args.multiplier)).to(device)
+    model = load_model(config, int(args.multiplier), int(args.graphNum)).to(device)
     total_params = sum(p.numel() for p in model.parameters())
     print("Total Params: {}".format(total_params))
 
@@ -52,12 +53,12 @@ def train(config, dataloader_train, dataloader_val, args):
             obj_name,
             soft_rest_graphs,
             soft_def_graphs,
-            meta_data,
+            rigid_graphs,
             _,
         ) in enumerate(dataloader_train):
             soft_rest_graphs_batched = soft_rest_graphs
             soft_def_graphs_batched = soft_def_graphs
-            breakpoint()
+
 
             soft_rest_graphs_batched, soft_def_graphs_batched = (
                 soft_rest_graphs_batched.to(device),
@@ -65,11 +66,18 @@ def train(config, dataloader_train, dataloader_val, args):
             )
 
 
-
-
             if(soft_rest_graphs_batched.x.size() == torch.Size([0])):
                 continue
-            predictions = model(soft_rest_graphs_batched)
+
+            if(int(args.graphNum) == 2):
+                rigid_graphs = rigid_graphs.to(device)
+            
+            if(int(args.graphNum) == 1):
+
+                predictions = model(soft_rest_graphs_batched)
+            else:
+                predictions = model(soft_rest_graphs_batched, rigid_graphs)
+
             predictions.pos = predictions.pos - soft_rest_graphs_batched.pos
             soft_def_graphs_batched.pos = (
                 soft_def_graphs_batched.pos - soft_rest_graphs_batched.pos
@@ -99,7 +107,7 @@ def train(config, dataloader_train, dataloader_val, args):
                 obj_name,
                 soft_rest_graphs,
                 soft_def_graphs,
-                meta_data,
+                rigid_graphs,
                 _,
                 _,
             ) in enumerate(dataloader_val):
@@ -114,7 +122,18 @@ def train(config, dataloader_train, dataloader_val, args):
                 )
                 if(soft_rest_graphs_batched.x.size() == torch.Size([0])):
                     continue
-                predictions = model(soft_rest_graphs_batched)
+
+
+                if(int(args.graphNum) == 2):
+                    rigid_graphs = rigid_graphs.to(device)
+
+                if(int(args.graphNum) == 1):
+
+                    predictions = model(soft_rest_graphs_batched)
+                else:
+                    predictions = model(soft_rest_graphs_batched, rigid_graphs)
+
+
                 loss_mae = criterion_mse(predictions.pos, soft_def_graphs_batched.pos)
                 # loss_deformable = criterion_def(predictions, soft_def_graphs_batched, meta_data['deform_intensity'].to(device))
                 loss_val = loss_mae
@@ -141,15 +160,26 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--name",  help="name",  required=True)
     parser.add_argument("-p", "--proportion", help="how many samples do you want", default=-1)
     parser.add_argument("-m", "--multiplier", help="How much you want to scale up the model", default=1)
+    parser.add_argument("-g", "--graphNum", help="How many graphs we want", default=1)
 
     args = parser.parse_args()
 
 
-    dataset = CrystalGraphDataset(args.name)
+    dataset = CrystalGraphDataset(args.name, graphNum = args.graphNum)
 
     batch_size = 32
     proportion = int(args.proportion)
 
+
+    #Okay, so idea number one failed; the tallest element isn't always the adosrbate.
+
+    # I can check to see if every element falls into one of these:
+
+    # There is 1 hydrogen, 1 carbon, 1 oxygen.
+
+    # what irriates me above all else is the idea that there could be one with multiple carbons, multiple oxygens, and 0 Hydrogens.
+
+    # Okay, screw this. I can't handle this dudes. It's way to slow to process everything here
 
     if(proportion == -1):
 
@@ -160,8 +190,16 @@ if __name__ == "__main__":
     else:
         train_dataset = Subset(dataset, range(proportion))
         test_dataset = Subset(dataset, range(proportion))
+    # alright, what do I want to do?
+    # find the tallest one.
+    # Check the identity.
+    # If H, leave.
+    # If O or C, then find the 2nd highest.
+    # What's the easiest way? May be to duplicate. Have some sort of keyword.
+    # No, I don't want to deal with that. 
+    # Just process the whole dataset right here, before I toss it into the loader. Good.
+    # Then toy with the collate function. 
 
-    breakpoint()
     train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=crystal_collate)
     test_loader = DataLoader(test_dataset, batch_size = batch_size, collate_fn=crystal_collate)
 

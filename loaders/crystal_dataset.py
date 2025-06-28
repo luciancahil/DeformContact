@@ -10,7 +10,7 @@ import lmdb
 
 
 class CrystalGraphDataset(Dataset):
-    def __init__(self, datasetName, embedding = False):
+    def __init__(self, datasetName, graphNum = 1, embedding = False):
         super().__init__()
         self.dataset_path = "dataset"
         self.processed_path = os.path.join(self.dataset_path , "processed", datasetName)
@@ -18,6 +18,7 @@ class CrystalGraphDataset(Dataset):
 
         self.lmdb_path = os.path.join(self.processed_path, datasetName + ".lmdb")
         self.embedding = embedding
+        self.graphNum = int(graphNum)
         
 
         if(os.path.exists(self.processed_path)):
@@ -40,9 +41,8 @@ class CrystalGraphDataset(Dataset):
             item_bytes = txn.get(str(idx).encode())
             if item_bytes is None:
                 return None, None, None, None, None
-            input_graph, target_graph = pickle.loads(item_bytes)
-        return input_graph, target_graph
-
+        return pickle.loads(item_bytes)
+    
     def __len__(self):
         return self.len
             
@@ -167,12 +167,42 @@ class CrystalGraphDataset(Dataset):
                 all_starting = torch.concat((all_starting, start_pos_list), dim=0)
                 all_ending = torch.concat((all_ending, end_pos_list), dim=0)
 
+                adsorbate_features = torch.zeros((0, features_list.shape[1]))
+                adsorbate_start_pos = torch.zeros((0, 3))
 
-                input_graph = Data(x=features_list, edge_index=edges, edge_attr=edge_attr, pos=start_pos_list, elements=elements, cid=cid)
-                target_graph = Data(x=features_list, edge_index=edges, pos=end_pos_list)
+                if(self.graphNum == 2):
+                    adsorbate_line = raw_file.readline()
+                    adsorbate_indicies = [int(n) for n in adsorbate_line.split(",")]
+
+                    
+
+                    for index in adsorbate_indicies:
+
+                        adsorbate_features = torch.cat((adsorbate_features, features_list[index].unsqueeze(dim=0)))
+                        adsorbate_start_pos = torch.cat((adsorbate_start_pos, start_pos_list[index].unsqueeze(dim=0)))
+
+                    adsorbate_edges = []
+
+                    if(len(adsorbate_indicies) == 2):
+                        adsorbate_edges.append([0, 1])
+                        adsorbate_edges.append([1, 0])
+                    else:
+                        adsorbate_edges.append([0])
+                        adsorbate_edges.append([0])
+
+                    adsorbate_edges = torch.tensor(adsorbate_edges)
+                    adsorbate_graph = Data(x=adsorbate_features, edge_index=adsorbate_edges, edge_attr=edge_attr, pos=adsorbate_start_pos, elements=elements, cid=cid)
+                    input_graph = Data(x=features_list, edge_index=edges, edge_attr=edge_attr, pos=start_pos_list, elements=elements, cid=cid)
+                    target_graph = Data(x=features_list, edge_index=edges, pos=end_pos_list)
+                    txn.put(str(idx - rejected).encode(), pickle.dumps((input_graph, target_graph, adsorbate_graph)))
+
+                else:
+
+                    input_graph = Data(x=features_list, edge_index=edges, edge_attr=edge_attr, pos=start_pos_list, elements=elements, cid=cid)
+                    target_graph = Data(x=features_list, edge_index=edges, pos=end_pos_list)
 
 
-                txn.put(str(idx - rejected).encode(), pickle.dumps((input_graph, target_graph)))
+                    txn.put(str(idx - rejected).encode(), pickle.dumps((input_graph, target_graph)))
 
 
             
@@ -184,3 +214,18 @@ class CrystalGraphDataset(Dataset):
 
             env.sync()
             print(f"Rejected {rejected} samples. Dataset saved to LMDB.")
+    
+    def delete_row(self, row_to_delete_index, tensor):
+        # Split and concatenate
+        if row_to_delete_index == 0:
+            # If deleting the first row
+            new_tensor = tensor[1:]
+        elif row_to_delete_index == tensor.shape[0] - 1:
+            # If deleting the last row
+            new_tensor = tensor[:-1]
+        else:
+            # If deleting a row in the middle
+            new_tensor = torch.cat((tensor[:row_to_delete_index, :],
+                                    tensor[row_to_delete_index + 1:, :]), dim=0)
+        
+        return new_tensor
